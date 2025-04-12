@@ -3,9 +3,11 @@
 const express = require('express');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const cors = require('cors');
+app.use(cors());
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Open the SQLite database.
 const dbPath = path.join(__dirname, 'db', 'stockdata.db');
