@@ -6,7 +6,6 @@ import Home from './pages/Home';
 import Watchlist from './pages/Watchlist';
 import StockDetails from './pages/StockDetails';
 import Layout from './components/Layout/Layout';
-import Porfolio from './components/Porfolio/Porfolio';
 
 const App = () => {
   return (
@@ -16,7 +15,6 @@ const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/stock/:symbol" element={<StockDetails />} />
-          <Route path="/portfolio" element={<Porfolio/>} />
         </Routes>
       </Layout>
     </Router>
