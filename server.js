@@ -17,8 +17,11 @@ const db = new sqlite3.Database(dbPath, err => {
 });
 
 // GET /stocks: List all stocks with basic info and the latest closing price.
+// GET /stocks?search=...&industry=...
 app.get('/stocks', (req, res) => {
-  const query = `
+  const { search, industry } = req.query;
+
+  let query = `
     SELECT 
       s.id, 
       s.name, 
@@ -28,8 +31,22 @@ app.get('/stocks', (req, res) => {
          WHERE stock_id = s.id 
          ORDER BY date DESC LIMIT 1) AS latestPrice
     FROM stocks s
+    WHERE 1=1
   `;
-  db.all(query, (err, rows) => {
+  const params = [];
+
+  if (search) {
+    query += ` AND (s.name LIKE ? OR s.symbol LIKE ?)`;
+    const term = `%${search}%`;
+    params.push(term, term);
+  }
+
+  if (industry) {
+    query += ` AND s.sector = ?`;
+    params.push(industry);
+  }
+
+  db.all(query, params, (err, rows) => {
     if (err) {
       console.error("Error retrieving stocks:", err.message);
       return res.status(500).json({ error: err.message });
@@ -39,10 +56,10 @@ app.get('/stocks', (req, res) => {
 });
 
 // GET /stocks/:id: Get detailed info and historical data for one stock.
+// GET /stocks/:id - Detailed info and formatted history
 app.get('/stocks/:id', (req, res) => {
   const stockId = req.params.id;
 
-  // Get stock metadata.
   db.get('SELECT * FROM stocks WHERE id = ?', [stockId], (err, stock) => {
     if (err) {
       console.error("Error retrieving stock:", err.message);
@@ -52,18 +69,32 @@ app.get('/stocks/:id', (req, res) => {
       return res.status(404).json({ error: "Stock not found" });
     }
 
-    // Get historical data for the stock.
     db.all(
-      'SELECT * FROM stock_history WHERE stock_id = ? ORDER BY date ASC',
+      `SELECT date, open, high, low, close, ltp, volume
+       FROM stock_history 
+       WHERE stock_id = ? 
+       ORDER BY date ASC`,
       [stockId],
       (err, history) => {
         if (err) {
-          console.error("Error retrieving stock history:", err.message);
+          console.error("Error retrieving history:", err.message);
           return res.status(500).json({ error: err.message });
         }
+
+        // Format for chart use
+        const formattedHistory = history.map(row => ({
+          date: row.date,
+          open: row.open,
+          high: row.high,
+          low: row.low,
+          close: row.close,
+          ltp: row.ltp,
+          volume: row.volume
+        }));
+
         res.json({
-          stock,
-          history
+          ...stock,
+          history: formattedHistory
         });
       }
     );
