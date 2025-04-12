@@ -7,16 +7,16 @@ const Watchlist = () => {
 
   const fetchWatchlist = async () => {
     try {
-      const res = await fetch('http://localhost:3001/watchlist'); // Adjust if deployed
-      if (!res.ok) {
-        throw new Error('API error');
-      }
-      const data = await res.json();
+      const res = await fetch('http://localhost:3001/watchlist');
+      const text = await res.text(); // Get raw response text
+      console.log("Raw API response:", text);
+
+      const data = JSON.parse(text); // Try parsing to JSON
       setWatchlist(data);
       localStorage.setItem('watchlist', JSON.stringify(data)); // Cache
       setError(null);
     } catch (err) {
-      console.warn('API fetch failed, trying localStorage...');
+      console.warn('API fetch failed, trying localStorage...', err.message);
       setError('Failed to fetch from API. Loaded from local storage.');
 
       const cached = localStorage.getItem('watchlist');
@@ -30,23 +30,25 @@ const Watchlist = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (watchlist_id) => {
     try {
-      const res = await fetch(`http://localhost:3001/watchlist/${id}`, {
+      const res = await fetch(`http://localhost:3001/watchlist/${watchlist_id}`, {
         method: 'DELETE',
       });
+
       if (!res.ok) {
         throw new Error('Failed to delete from watchlist');
       }
-      const updatedWatchlist = watchlist.filter(stock => stock.id !== id);
+
+      const updatedWatchlist = watchlist.filter(stock => stock.watchlist_id !== watchlist_id);
       setWatchlist(updatedWatchlist);
-      localStorage.setItem('watchlist', JSON.stringify(updatedWatchlist)); // Update localStorage
+      localStorage.setItem('watchlist', JSON.stringify(updatedWatchlist));
     } catch (error) {
       console.error('Error deleting from watchlist:', error);
       setError('Failed to delete from watchlist');
     }
   };
-  
+
   useEffect(() => {
     fetchWatchlist();
   }, []);
@@ -64,8 +66,8 @@ const Watchlist = () => {
 
       {!loading && watchlist.length > 0 && (
         <div className="row">
-          {watchlist.map(stock => (
-            <div key={stock.id} className="col-md-4 mb-3">
+          {watchlist.map((stock, index) => (
+            <div key={`${stock.watchlist_id}-${index}`} className="col-md-4 mb-3">
               <div className="card shadow-sm">
                 <div className="card-body">
                   <h5 className="card-title">
@@ -76,9 +78,9 @@ const Watchlist = () => {
                     <strong>Latest Price:</strong>{' '}
                     ₹{stock.latestPrice ? stock.latestPrice.toFixed(2) : 'N/A'}
                   </p>
-                  <button 
-                    className="btn btn-danger" 
-                    onClick={() => handleDelete(stock.id)}
+                  <button
+                    className="btn btn-danger"
+                    onClick={() => handleDelete(stock.watchlist_id)}
                   >
                     Remove from Watchlist
                   </button>
