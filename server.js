@@ -101,6 +101,63 @@ app.get('/stocks/:id', (req, res) => {
   });
 });
 
+// GET /watchlist - Get all saved stocks
+app.get('/watchlist', (req, res) => {
+  const query = `
+    SELECT 
+      w.id as watchlist_id,
+      s.id, s.name, s.symbol, s.sector,
+      (SELECT close FROM stock_history 
+         WHERE stock_id = s.id 
+         ORDER BY date DESC LIMIT 1) AS latestPrice
+    FROM watchlist w
+    JOIN stocks s ON w.stock_id = s.id
+  `;
+  db.all(query, (err, rows) => {
+    if (err) {
+      console.error("Error fetching watchlist:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(rows);
+  });
+});
+
+// POST /watchlist - Add stock to watchlist
+app.post('/watchlist', express.json(), (req, res) => {
+  const { stock_id } = req.body;
+  if (!stock_id) {
+    return res.status(400).json({ error: "stock_id is required" });
+  }
+
+  db.run(
+    `INSERT INTO watchlist (stock_id) VALUES (?)`,
+    [stock_id],
+    function (err) {
+      if (err) {
+        console.error("Error adding to watchlist:", err.message);
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({ message: "Added to watchlist", id: this.lastID });
+    }
+  );
+});
+
+// DELETE /watchlist/:id - Remove from watchlist
+app.delete('/watchlist/:id', (req, res) => {
+  const id = req.params.id;
+  db.run(`DELETE FROM watchlist WHERE id = ?`, [id], function (err) {
+    if (err) {
+      console.error("Error removing from watchlist:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ error: "Item not found in watchlist" });
+    }
+    res.json({ message: "Removed from watchlist" });
+  });
+});
+
+
 // Start the server.
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

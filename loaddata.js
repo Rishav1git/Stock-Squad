@@ -34,6 +34,14 @@ db.serialize(() => {
       FOREIGN KEY(stock_id) REFERENCES stocks(id)
     )
   `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS watchlist (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      stock_id INTEGER,
+      FOREIGN KEY(stock_id) REFERENCES stocks(id)
+    )
+  `);
+  
 });
 
 const DATA_DIR = path.join(__dirname, 'data');
