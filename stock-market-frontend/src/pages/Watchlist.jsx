@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import styles from './Watchlist.module.css';
 
 const Watchlist = () => {
   const [watchlist, setWatchlist] = useState([]);
@@ -8,12 +9,12 @@ const Watchlist = () => {
   const fetchWatchlist = async () => {
     try {
       const res = await fetch('http://localhost:3001/watchlist');
-      const text = await res.text(); // Get raw response text
+      const text = await res.text();
       console.log("Raw API response:", text);
 
-      const data = JSON.parse(text); // Try parsing to JSON
+      const data = JSON.parse(text);
       setWatchlist(data);
-      localStorage.setItem('watchlist', JSON.stringify(data)); // Cache
+      localStorage.setItem('watchlist', JSON.stringify(data));
       setError(null);
     } catch (err) {
       console.warn('API fetch failed, trying localStorage...', err.message);
@@ -54,37 +55,34 @@ const Watchlist = () => {
   }, []);
 
   return (
-    <div className="container mt-4">
-      <h2 className="mb-4">📈 Your Watchlist</h2>
+    <div className={styles.container}>
+      <h2 className={styles.heading}>📈 Your Watchlist</h2>
 
-      {loading && <p>Loading your watchlist...</p>}
-      {error && <div className="alert alert-warning">{error}</div>}
+      {loading && <p className={styles.loading}>Loading your watchlist...</p>}
+      {error && <div className={styles.error}>{error}</div>}
 
       {!loading && watchlist.length === 0 && (
-        <p>No stocks in your watchlist.</p>
+        <p className={styles.noItems}>No stocks in your watchlist.</p>
       )}
 
       {!loading && watchlist.length > 0 && (
-        <div className="row">
+        <div className={styles.grid}>
           {watchlist.map((stock, index) => (
-            <div key={`${stock.watchlist_id}-${index}`} className="col-md-4 mb-3">
-              <div className="card shadow-sm">
-                <div className="card-body">
-                  <h5 className="card-title">
-                    {stock.name} ({stock.symbol})
-                  </h5>
-                  <p className="card-text">
-                    <strong>Sector:</strong> {stock.sector}<br />
-                    <strong>Latest Price:</strong>{' '}
-                    ₹{stock.latestPrice ? stock.latestPrice.toFixed(2) : 'N/A'}
-                  </p>
-                  <button
-                    className="btn btn-danger"
-                    onClick={() => handleDelete(stock.watchlist_id)}
-                  >
-                    Remove from Watchlist
-                  </button>
-                </div>
+            <div key={`${stock.watchlist_id}-${index}`} className={styles.card}>
+              <div className={styles.cardBody}>
+                <h5 className={styles.cardTitle}>
+                  {stock.name} <span className={styles.symbol}>({stock.symbol})</span>
+                </h5>
+                <p className={styles.cardText}>
+                  <strong>Sector:</strong> {stock.sector}<br />
+                  <strong>Latest Price:</strong> ₹{stock.latestPrice ? stock.latestPrice.toFixed(2) : 'N/A'}
+                </p>
+                <button
+                  className={styles.button}
+                  onClick={() => handleDelete(stock.watchlist_id)}
+                >
+                  Remove from Watchlist
+                </button>
               </div>
             </div>
           ))}

@@ -10,7 +10,7 @@ const Home = () => {
   const [industry, setIndustry] = useState('');
   const [industries, setIndustries] = useState([]);
 
-  // Fetch stock data
+  // Fetch stock data based on search and industry filters.
   useEffect(() => {
     let url = 'http://localhost:3001/stocks';
     const params = new URLSearchParams();
@@ -24,7 +24,7 @@ const Home = () => {
       .catch(err => console.error('Error fetching stocks:', err));
   }, [search, industry]);
 
-  // Fetch industry list (optional: based on stocks)
+  // Fetch unique list of industries from stock data.
   useEffect(() => {
     fetch('http://localhost:3001/stocks')
       .then(res => res.json())
@@ -34,8 +34,10 @@ const Home = () => {
       });
   }, []);
 
-  const handleView = (id) => {
-    navigate(`/stock/${id}`);
+  // When a user clicks the "View" button, navigate to StockDetails page.
+  // Pass the company name via state so that StockDetails can search for details.
+  const handleView = (stock) => {
+    navigate('/stockdetails', { state: { companyName: stock.name } });
   };
 
   return (
@@ -65,9 +67,13 @@ const Home = () => {
       <div className={styles.grid}>
         {stocks.map((stock) => (
           <div className={styles.card} key={stock.id}>
-            <h2>{stock.name} <span className={styles.symbol}>({stock.symbol})</span></h2>
-            <p className={styles.price}>₹{stock.latestPrice?.toFixed(2) || 'N/A'}</p>
-            <button className={styles.button} onClick={() => handleView(stock.id)}>
+            <h2>
+              {stock.name} <span className={styles.symbol}>({stock.symbol})</span>
+            </h2>
+            <p className={styles.price}>
+              ₹{stock.latestPrice?.toFixed(2) || 'N/A'}
+            </p>
+            <button className={styles.button} onClick={() => handleView(stock)}>
               View
             </button>
           </div>

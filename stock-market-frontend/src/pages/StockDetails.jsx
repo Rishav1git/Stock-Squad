@@ -1,5 +1,6 @@
+// src/pages/StockDetails.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './StockDetails.module.css';
 import {
   LineChart,
@@ -8,19 +9,57 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from 'recharts';
 
 const StockDetails = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialCompanyName = location.state?.companyName || '';
 
-  // Instead of using URL params, we keep track of the selected symbol in state.
-  const [selectedSymbol, setSelectedSymbol] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialCompanyName);
   const [stock, setStock] = useState(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(''); // Search bar input
+
+  const handleSearchSubmit = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    setNotFound(false);
+    setStock(null);
+    setLoading(true);
+
+    try {
+      const res = await fetch(`http://localhost:3001/stocks?search=${encodeURIComponent(searchTerm)}`);
+      const results = await res.json();
+
+      if (!results?.length) {
+        setMessage('No matching stocks found.');
+        setLoading(false);
+        return;
+      }
+
+      fetchStockDetails(results[0].id);
+    } catch (err) {
+      console.error(err);
+      setMessage('Error searching for stock.');
+      setLoading(false);
+    }
+  };
+
+  const fetchStockDetails = async (stockId) => {
+    try {
+      const res = await fetch(`http://localhost:3001/stocks/${stockId}`);
+      const data = await res.json();
+      setStock(data);
+    } catch (err) {
+      console.error('Error fetching stock details:', err);
+      setNotFound(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddToWatchlist = async () => {
     try {
@@ -30,89 +69,44 @@ const StockDetails = () => {
         body: JSON.stringify({ stock_id: stock.id }),
       });
 
-      if (res.ok) {
-        setMessage('⭐ Added to watchlist!');
-      } else {
-        const errData = await res.json();
-        setMessage(`❌ ${errData.error}`);
+      const data = await res.json();
+      if (!res.ok || data?.error) {
+        setMessage(`❌ ${data.error || 'Failed to add to watchlist.'}`);
+        return;
       }
+
+      setMessage('⭐ Added to watchlist!');
     } catch (err) {
       console.error(err);
       setMessage('❌ Failed to add to watchlist.');
     }
   };
 
-  // Function to handle search bar submission.
-  const handleSearchSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('');
-    setNotFound(false);
-    setStock(null);
-    setLoading(true);
-
-    try {
-      // Search for the stock by company name or symbol.
-      const res = await fetch(`http://localhost:3001/stocks?search=${encodeURIComponent(searchTerm)}`);
-      const results = await res.json();
-
-      if (!results || results.length === 0) {
-        setMessage("No matching stocks found.");
-        setLoading(false);
-        return;
-      }
-      // For simplicity, pick the first match.
-      const match = results[0];
-      setSelectedSymbol(match.symbol);
-
-      // Now load the details for that stock.
-      fetchStockDetails(match.id);
-    } catch (err) {
-      console.error(err);
-      setMessage("Error searching for stock.");
-      setLoading(false);
-    }
-  };
-
-  // Fetch the detailed stock info given the stock id.
-  const fetchStockDetails = (stockId) => {
-    fetch(`http://localhost:3001/stocks/${stockId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setStock(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Error fetching stock details:', err);
-        setNotFound(true);
-        setLoading(false);
-      });
-  };
-
-  // useEffect is not needed for initial load since we expect the user to start with a search.
-  // But you can uncomment the below code if you want to load a default stock on mount.
-  /*
   useEffect(() => {
-    if (selectedSymbol) {
-      // Fetch details for the selected symbol if available.
-      // This requires that you determine the stock ID from your list.
+    if (initialCompanyName) {
+      handleSearchSubmit({ preventDefault: () => {} });
     }
-  }, [selectedSymbol]);
-  */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCompanyName]);
 
-  if (loading) return <div className={styles.container}>Loading...</div>;
+  if (loading) {
+    return <div className={styles.container}>Loading...</div>;
+  }
 
   if (notFound) {
     return (
       <div className={styles.errorContainer}>
         <h2>Stock Not Found</h2>
-        <button onClick={() => navigate('/')}>Back to Home</button>
+        <button className={styles.backBtn} onClick={() => navigate('/')}>Back to Home</button>
       </div>
     );
   }
 
   return (
     <div className={styles.container}>
-      <button className={styles.backBtn} onClick={() => navigate('/')}>← Back</button>
+      <button className={styles.backBtn} onClick={() => navigate('/')}>
+        ← Back
+      </button>
 
       {/* Search Bar */}
       <form onSubmit={handleSearchSubmit} className={styles.searchForm}>
@@ -123,10 +117,15 @@ const StockDetails = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           className={styles.searchInput}
         />
-        <button type="submit" className={styles.searchBtn}>Search</button>
+        <button type="submit" className={styles.searchBtn}>
+          Search
+        </button>
       </form>
 
-      {/* If stock details have been loaded, display them */}
+      {/* Display messages */}
+      {message && <p className={styles.message}>{message}</p>}
+
+      {/* Stock Info */}
       {stock && (
         <>
           <h1 className={styles.heading}>
@@ -134,11 +133,11 @@ const StockDetails = () => {
           </h1>
 
           <div className={styles.details}>
-            {/* Calculate today's change using the last two history entries */}
-            {stock.history && stock.history.length > 1 && (() => {
-              const latest = stock.history[stock.history.length - 1];
-              const prev = stock.history[stock.history.length - 2];
-              const change = ((latest.close - prev.close) / prev.close) * 100;
+            {stock.history?.length > 1 && (() => {
+              const latest = stock.history.at(-1);
+              const previous = stock.history.at(-2);
+              const change = ((latest.close - previous.close) / previous.close) * 100;
+
               return (
                 <>
                   <p className={styles.price}>
@@ -155,18 +154,26 @@ const StockDetails = () => {
           <button className={styles.watchlistBtn} onClick={handleAddToWatchlist}>
             ⭐ Add to Watchlist
           </button>
-          {message && <p className={styles.message}>{message}</p>}
 
-          {stock.history && (
+          {/* Chart */}
+          {stock.history?.length > 0 && (
             <div className={styles.chart}>
               <h3>📈 Price History</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={stock.history.map(d => ({ date: d.date, price: d.close }))}>
+                <LineChart
+                  data={stock.history.map(({ date, close }) => ({ date, price: close }))}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis domain={['auto', 'auto']} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="price" stroke="#007bff" strokeWidth={2} />
+                  <Line
+                    type="monotone"
+                    dataKey="price"
+                    stroke="#007bff"
+                    strokeWidth={2}
+                    dot={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
