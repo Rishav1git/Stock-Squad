@@ -5,35 +5,39 @@ const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 
-const app = express();
-app.use(cors());
 const PORT = process.env.PORT || 3001;
+const app = express();
 
-// Open the SQLite database.
+app.use(cors());
+app.use(express.json());
+
+// Initialize and connect to SQLite database
 const dbPath = path.join(__dirname, 'db', 'stockdata.db');
 const db = new sqlite3.Database(dbPath, err => {
   if (err) {
-    return console.error("Database connection error:", err.message);
+    console.error("❌ Database connection error:", err.message);
+  } else {
+    console.log("✅ Connected to SQLite database.");
   }
-  console.log('Connected to the SQLite database.');
 });
 
-// GET /stocks: List all stocks with basic info and the latest closing price.
-// GET /stocks?search=...&industry=...
+// Helper to fetch latest close price
+const getLatestClosePriceSubquery = `
+  (SELECT close FROM stock_history 
+   WHERE stock_id = s.id 
+   ORDER BY date DESC LIMIT 1)
+`;
+
+// -------------------- Stocks APIs --------------------
+
+// GET /stocks - List all stocks with optional filters
 app.get('/stocks', (req, res) => {
   const { search, industry } = req.query;
-
   let query = `
     SELECT 
-      s.id, 
-      s.name, 
-      s.symbol, 
-      s.sector,
-      (SELECT close FROM stock_history 
-         WHERE stock_id = s.id 
-         ORDER BY date DESC LIMIT 1) AS latestPrice
-    FROM stocks s
-    WHERE 1=1
+      s.id, s.name, s.symbol, s.sector,
+      ${getLatestClosePriceSubquery} AS latestPrice
+    FROM stocks s WHERE 1=1
   `;
   const params = [];
 
@@ -50,25 +54,24 @@ app.get('/stocks', (req, res) => {
 
   db.all(query, params, (err, rows) => {
     if (err) {
-      console.error("Error retrieving stocks:", err.message);
-      return res.status(500).json({ error: err.message });
+      console.error("❌ Error fetching stocks:", err.message);
+      return res.status(500).json({ error: "Failed to fetch stocks." });
     }
     res.json(rows);
   });
 });
 
-// GET /stocks/:id: Get detailed info and historical data for one stock.
-// GET /stocks/:id - Detailed info and formatted history
+// GET /stocks/:id - Get detailed info and historical data for a stock
 app.get('/stocks/:id', (req, res) => {
   const stockId = req.params.id;
 
   db.get('SELECT * FROM stocks WHERE id = ?', [stockId], (err, stock) => {
     if (err) {
-      console.error("Error retrieving stock:", err.message);
-      return res.status(500).json({ error: err.message });
+      console.error("❌ Error retrieving stock:", err.message);
+      return res.status(500).json({ error: "Failed to retrieve stock." });
     }
     if (!stock) {
-      return res.status(404).json({ error: "Stock not found" });
+      return res.status(404).json({ error: "Stock not found." });
     }
 
     db.all(
@@ -79,11 +82,10 @@ app.get('/stocks/:id', (req, res) => {
       [stockId],
       (err, history) => {
         if (err) {
-          console.error("Error retrieving history:", err.message);
-          return res.status(500).json({ error: err.message });
+          console.error("❌ Error retrieving history:", err.message);
+          return res.status(500).json({ error: "Failed to fetch history." });
         }
 
-        // Format for chart use
         const formattedHistory = history.map(row => ({
           date: row.date,
           open: row.open,
@@ -103,29 +105,30 @@ app.get('/stocks/:id', (req, res) => {
   });
 });
 
-// GET /watchlist - Get all saved stocks
+// -------------------- Watchlist APIs --------------------
+
+// GET /watchlist - Get all watchlist entries
 app.get('/watchlist', (req, res) => {
   const query = `
     SELECT 
-      w.id as watchlist_id,
+      w.id AS watchlist_id,
       s.id, s.name, s.symbol, s.sector,
-      (SELECT close FROM stock_history 
-         WHERE stock_id = s.id 
-         ORDER BY date DESC LIMIT 1) AS latestPrice
+      ${getLatestClosePriceSubquery} AS latestPrice
     FROM watchlist w
     JOIN stocks s ON w.stock_id = s.id
   `;
+
   db.all(query, (err, rows) => {
     if (err) {
-      console.error("Error fetching watchlist:", err.message);
-      return res.status(500).json({ error: err.message });
+      console.error("❌ Error fetching watchlist:", err.message);
+      return res.status(500).json({ error: "Failed to fetch watchlist." });
     }
     res.json(rows);
   });
 });
 
-// POST /watchlist - Add stock to watchlist
-app.post('/watchlist', express.json(), (req, res) => {
+// POST /watchlist - Add a stock to watchlist
+app.post('/watchlist', (req, res) => {
   const { stock_id } = req.body;
   if (!stock_id) {
     return res.status(400).json({ error: "stock_id is required" });
@@ -136,31 +139,32 @@ app.post('/watchlist', express.json(), (req, res) => {
     [stock_id],
     function (err) {
       if (err) {
-        console.error("Error adding to watchlist:", err.message);
-        return res.status(500).json({ error: err.message });
+        console.error("❌ Error adding to watchlist:", err.message);
+        return res.status(500).json({ error: "Failed to add to watchlist." });
       }
-      res.json({ message: "Added to watchlist", id: this.lastID });
+      res.json({ message: "✅ Added to watchlist", id: this.lastID });
     }
   );
 });
 
-// DELETE /watchlist/:id - Remove from watchlist
+// DELETE /watchlist/:id - Remove a stock from watchlist
 app.delete('/watchlist/:id', (req, res) => {
   const id = req.params.id;
+
   db.run(`DELETE FROM watchlist WHERE id = ?`, [id], function (err) {
     if (err) {
-      console.error("Error removing from watchlist:", err.message);
-      return res.status(500).json({ error: err.message });
+      console.error("❌ Error removing from watchlist:", err.message);
+      return res.status(500).json({ error: "Failed to remove from watchlist." });
     }
     if (this.changes === 0) {
-      return res.status(404).json({ error: "Item not found in watchlist" });
+      return res.status(404).json({ error: "Item not found in watchlist." });
     }
-    res.json({ message: "Removed from watchlist" });
+    res.json({ message: "✅ Removed from watchlist" });
   });
 });
 
+// -------------------- Start Server --------------------
 
-// Start the server.
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });

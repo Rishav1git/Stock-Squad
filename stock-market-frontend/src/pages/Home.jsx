@@ -69,7 +69,7 @@ const Home = () => {
         {stocks.map((stock) => (
           <div className={styles.card} key={stock.id}>
             <h2>{stock.name} <span className={styles.symbol}>({stock.symbol})</span></h2>
-            <p className={styles.price}>${stock.latestPrice?.toFixed(2) || 'N/A'}</p>
+            <p className={styles.price}>₹{stock.latestPrice?.toFixed(2) || 'N/A'}</p>
             <button className={styles.button} onClick={() => handleView(stock.id)}>
               View
             </button>
