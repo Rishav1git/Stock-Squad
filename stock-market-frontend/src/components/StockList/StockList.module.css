@@ -1,0 +1,100 @@
+/* src/components/StockList/StockList.module.css */
+.container {
+    padding: 2rem;
+    background: #f4f7fb;
+    border-radius: 10px;
+    margin-top: 2rem;
+  }
+  
+  .title {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #1f2937;
+  }
+  
+  .filterContainer {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .searchInput {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  
+  .dropdown {
+    padding: 0.5rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 1rem;
+    background: #fff;
+  }
+  
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .stockName {
+    font-size: 1.2rem;
+    color: #0f172a;
+    margin-bottom: 0.5rem;
+  }
+  
+  .symbol {
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+  
+  .price {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0.5rem 0;
+  }
+  
+  .industry {
+    font-size: 0.9rem;
+    color: #475569;
+    margin-bottom: 1rem;
+  }
+  
+  .button {
+    padding: 8px 14px;
+    background-color: #00d1b2;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background-color 0.2s ease;
+  }
+  
+  .button:hover {
+    background-color: #00b89c;
+  }
+  
+  .noResult {
+    grid-column: 1/-1;
+    text-align: center;
+    font-size: 1.1rem;
+    color: #9ca3af;
+  }
+  
