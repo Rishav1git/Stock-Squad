@@ -2,9 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import styles from './Home.module.css';
 import { useNavigate } from 'react-router-dom';
-import TopGainers from '../components/Gainers/TopGainers'; 
-import TopLosers from '../components/Losers/TopLosers';
-import StockList from '../components/StockList/StockList';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -76,10 +73,6 @@ const Home = () => {
           </div>
         ))}
       </div>
-
-      <TopGainers />
-      <TopLosers />
-      <StockList />
     </div>
   );
 };
