@@ -1,0 +1,55 @@
+.container {
+    padding: 32px;
+  }
+  
+  .backBtn {
+    margin-bottom: 24px;
+    padding: 8px 16px;
+    background-color: #efefef;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  .heading {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #1f2937;
+  }
+  
+  .details {
+    font-size: 18px;
+    margin-bottom: 32px;
+  }
+  
+  .price {
+    margin-bottom: 12px;
+  }
+  
+  .positive {
+    color: green;
+  }
+  
+  .negative {
+    color: red;
+  }
+  
+  .chartPlaceholder {
+    width: 100%;
+    height: 250px;
+    background-color: #f3f4f6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    font-size: 20px;
+    color: #6b7280;
+  }
+  
+  .errorContainer {
+    padding: 32px;
+    color: red;
+    font-weight: 600;
+  }
+  
